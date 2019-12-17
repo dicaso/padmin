@@ -35,7 +35,7 @@ class Project(object):
     def __init__(self, dirname):
         self.name = os.path.basename(dirname)
         self.location = dirname
-        #os.mkdir(dirname)
+        os.mkdir(dirname)
 
     def git(self):
         curdir = os.getcwd()
@@ -44,14 +44,23 @@ class Project(object):
         sub.run('git add *'.split())
         sub.run(['git', 'commit', '-m"first commit"'])
         sub.run(f'git remote add origin https://github.com/dicaso/{self.name}.git'.split())
+        # Make repo on github from commandline
+        sub.run([
+            'curl', '-u', 'beukueb',
+            'https://api.github.com/orgs/dicaso/repos',
+            '-d', f'{{"name":"{self.name}","description":"{self.description}"}}'
+        ])
+        # for user repo, replace /orgs/dicaso with /user
+        # info https://developer.github.com/v3/repos/#create
         sub.run('git push -u origin master'.split())
         os.chdir(curdir)
 
 class PyProject(Project):
-    def __init__(self, dirname):
+    def __init__(self, dirname, description=''):
         super().__init__(dirname)
-        #os.mkdir(os.path.join(self.location, self.name))
-
+        os.mkdir(os.path.join(self.location, self.name))
+        self.description = description or input('Description: ')
+        
         # README.md
         multiline_input(
             '# '+self.name, editor = True,
@@ -79,11 +88,18 @@ class PyProject(Project):
 
         # submit to pypi
         ## prepare virtualenv
-        ## install twine
-        # python3 -m pip install --user --upgrade twine
-        # python3 setup.py sdist bdist_wheel
-        # python3 -m twine upload dist/*
+        self.mkvirtualenv()
         
+        ## install twine in virtualenv
+        sub.run(['bash'], input=f'''.  ~/Envs/{self.name}/bin/activate
+            cd {self.location}
+            pip install twine
+            python3 setup.py sdist bdist_wheel
+            python3 -m twine upload dist/*
+        '''.encode())
+        
+        # pre-commit hooks for python syntax
+        # TODO
         
     def setupfile(self):
         print('Provide information for "setup.py"')
@@ -96,7 +112,7 @@ class PyProject(Project):
             
             setup(name='{self.name}',
                   version='0.0.1',
-                  description='{input('Description: ')}',
+                  description='{self.description}',
                   long_description=long_description,
                   long_description_content_type="text/markdown",
                   url='https://github.com/dicaso/{self.name}',
