@@ -9,6 +9,7 @@ import re
 import subprocess as sub
 from padmin import templates
 
+
 def multiline_input(prompt=None, editor=False, filename=None):
     import sys
     import tempfile
@@ -18,18 +19,24 @@ def multiline_input(prompt=None, editor=False, filename=None):
             tempfile.NamedTemporaryFile(mode='w+t', delete=False)
         )
         tmpname = filename if filename else tmpfile.name
-        if prompt: tmpfile.write(prompt)
+        if prompt:
+            tmpfile.write(prompt)
         tmpfile.close()
-        try: editor = os.environ['editor']
-        except KeyError: editor = 'vi'
-        sub.run([editor, tmpfile.name])
+        try:
+            editor = os.environ['editor']
+        except KeyError:
+            editor = 'vi'
+        sub.run([editor, tmpname])
         with open(tmpfile.name) as inpfile:
             content = ''.join(inpfile.readlines())
-        if not filename: os.remove(tmpfile.name)
+        if not filename:
+            os.remove(tmpfile.name)
     else:
-        if prompt: print(prompt)
+        if prompt:
+            print(prompt)
         content = ''.join(sys.stdin.readlines())
     return content
+
 
 class Project(object):
     def __init__(self, dirname):
@@ -43,73 +50,86 @@ class Project(object):
         sub.run('git init'.split())
         sub.run('git add *'.split())
         sub.run(['git', 'commit', '-m"first commit"'])
-        sub.run(f'git remote add origin https://github.com/dicaso/{self.name}.git'.split())
+        sub.run(
+            f'git remote add origin https://github.com/dicaso/{self.name}.git'
+            .split())
         # Make repo on github from commandline
         sub.run([
             'curl', '-u', 'beukueb',
             'https://api.github.com/orgs/dicaso/repos',
-            '-d', f'{{"name":"{self.name}","description":"{self.description}"}}'
+            '-d',
+            f'{{"name":"{self.name}","description":"{self.description}"}}'
         ])
         # for user repo, replace /orgs/dicaso with /user
         # info https://developer.github.com/v3/repos/#create
         sub.run('git push -u origin master'.split())
         os.chdir(curdir)
 
+
 class PyProject(Project):
     def __init__(self, dirname, description=''):
         super().__init__(dirname)
         os.mkdir(os.path.join(self.location, self.name))
         self.description = description or input('Description: ')
-        
+
         # README.md
         multiline_input(
-            '# '+self.name, editor = True,
-            filename = os.path.join(self.location, self.name, 'README.md')
+            '# '+self.name, editor=True,
+            filename=os.path.join(self.location, self.name, 'README.md')
         )
 
         # setup.py
         self.setupfile()
 
         # __init__.py
-        with open(os.path.join(self.location, self.name, '__init__.py'), 'wt') as f:
+        with open(
+                os.path.join(self.location, self.name, '__init__.py'), 'wt'
+        ) as f:
             f.write(templates.init.format(name=self.name))
 
         # requirements.txt requirements-dev.txt
         # TODO
-        
+
         # LICENSE
         multiline_input(
             templates.license, editor=True,
-            filename = os.path.join(self.location, self.name, 'LICENSE')
+            filename=os.path.join(self.location, self.name, 'LICENSE')
         )
 
         # prepare git
         self.git()
 
         # submit to pypi
-        ## prepare virtualenv
+        # prepare virtualenv
         self.mkvirtualenv()
-        
-        ## install twine in virtualenv
+
+        # install twine and pre-commit in virtualenv
         sub.run(['bash'], input=f'''.  ~/Envs/{self.name}/bin/activate
             cd {self.location}
+            # twine
             pip install twine
             python3 setup.py sdist bdist_wheel
             python3 -m twine upload dist/*
+            # pre-commit
+            pip install pre-commit
+            pre-commit install
         '''.encode())
-        
-        # pre-commit hooks for python syntax
-        # TODO
-        
+
+        # pre-commit config
+        with open(
+                os.path.join(self.location, '.pre-commit-config.yaml'), 'wt'
+        ) as f:
+            f.write(templates.precommit)
+
     def setupfile(self):
         print('Provide information for "setup.py"')
         file = SkeletonFile(
-            template = f'''
+            template=f'''
             from setuptools import setup, find_packages
-            
+
             with open("README.md", "r") as fh:
                 long_description = fh.read()
-            
+
             setup(name='{self.name}',
                   version='0.0.1',
                   description='{self.description}',
@@ -140,8 +160,8 @@ class PyProject(Project):
                   test_suite='nose.collector',
                   tests_require=['nose']
                   )
-            
-            # To install with symlink, so that changes are immediately available:
+
+            # To install with symlink, to make changes immediately available:
             # pip install -e .
             '''
         )
@@ -155,7 +175,8 @@ class SkeletonFile(object):
     def __init__(self, template, settings={}, reident=True):
         if reident:
             identspace = re.compile(r'.*\n(\W*)\w')
-            template = template.replace('\n'+identspace.match(template).groups()[0],'\n')
+            template = template.replace(
+                '\n'+identspace.match(template).groups()[0], '\n')
         self.content = template.format(**settings) if settings else template
 
     def copy(self, filename):
