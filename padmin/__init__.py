@@ -56,6 +56,7 @@ class Project(object):
         # Make repo on github from commandline
         sub.run([
             'curl', '-u', 'beukueb',
+            # TODO add token https://github.com/settings/tokens for auth
             'https://api.github.com/orgs/dicaso/repos',
             '-d',
             f'{{"name":"{self.name}","description":"{self.description}"}}'
