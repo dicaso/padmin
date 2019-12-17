@@ -43,6 +43,8 @@ class Project(object):
         sub.run('git init'.split())
         sub.run('git add *'.split())
         sub.run(['git', 'commit', '-m"first commit"'])
+        sub.run(f'git remote add origin https://github.com/dicaso/{self.name}.git'.split())
+        sub.run('git push -u origin master'.split())
         os.chdir(curdir)
 
 class PyProject(Project):
@@ -59,6 +61,13 @@ class PyProject(Project):
         # setup.py
         self.setupfile()
 
+        # __init__.py
+        with open(os.path.join(self.location, self.name, '__init__.py'), 'wt') as f:
+            f.write(templates.init.format(name=self.name))
+
+        # requirements.txt requirements-dev.txt
+        # TODO
+        
         # LICENSE
         multiline_input(
             templates.license, editor=True,
@@ -67,6 +76,14 @@ class PyProject(Project):
 
         # prepare git
         self.git()
+
+        # submit to pypi
+        ## prepare virtualenv
+        ## install twine
+        # python3 -m pip install --user --upgrade twine
+        # python3 setup.py sdist bdist_wheel
+        # python3 -m twine upload dist/*
+        
         
     def setupfile(self):
         print('Provide information for "setup.py"')
@@ -113,6 +130,10 @@ class PyProject(Project):
             '''
         )
         file.copy(os.path.join(self.location, 'setup.py'))
+
+    def mkvirtualenv(self):
+        sub.run(['mkvirtualenv',  self.name, '-a', self.location])
+
 
 class SkeletonFile(object):
     def __init__(self, template, settings={}, reident=True):

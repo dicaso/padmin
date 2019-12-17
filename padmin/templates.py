@@ -2,6 +2,12 @@
 for padmin projects
 """
 
+init='''"""{name} module
+
+Project initiated
+"""
+'''
+
 license='''MIT License
 
 Copyright (c) 2019 Digital Caviar Solutions
