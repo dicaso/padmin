@@ -39,12 +39,13 @@ def multiline_input(prompt=None, editor=False, filename=None):
 
 
 class Project(object):
-    def __init__(self, dirname):
-        self.name = os.path.basename(dirname)
-        self.location = dirname
-        os.mkdir(dirname)
+    def __init__(self, dirname='.'):
+        self.location = os.cwd() if dirname == '.' else dirname
+        self.name = os.path.basename(self.location)
+        if not os.path.exists(self.location):
+            os.mkdir(self.location)
 
-    def git(self):
+    def git_init(self):
         curdir = os.getcwd()
         os.chdir(self.location)
         sub.run('git init'.split())
@@ -70,6 +71,10 @@ class Project(object):
 class PyProject(Project):
     def __init__(self, dirname, description=''):
         super().__init__(dirname)
+        if not os.path.exists(os.path.join(self.location, self.name)):
+            self.setup(description)
+
+    def setup_init(self, description=''):
         os.mkdir(os.path.join(self.location, self.name))
         self.description = description or input('Description: ')
 
@@ -80,7 +85,7 @@ class PyProject(Project):
         )
 
         # setup.py
-        self.setupfile()
+        self.setupfile_init()
 
         # __init__.py
         with open(
@@ -98,7 +103,7 @@ class PyProject(Project):
         )
 
         # prepare git
-        self.git()
+        self.git_init()
 
         # submit to pypi
         # prepare virtualenv
@@ -122,7 +127,7 @@ class PyProject(Project):
         ) as f:
             f.write(templates.precommit)
 
-    def setupfile(self):
+    def setupfile_init(self):
         print('Provide information for "setup.py"')
         file = SkeletonFile(
             template=f'''
