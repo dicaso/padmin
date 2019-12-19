@@ -8,41 +8,15 @@ import os
 import re
 import subprocess as sub
 from padmin import templates
-
-
-def multiline_input(prompt=None, editor=False, filename=None):
-    import sys
-    import tempfile
-    if editor:
-        tmpfile = (
-            open(filename, 'wt') if filename else
-            tempfile.NamedTemporaryFile(mode='w+t', delete=False)
-        )
-        tmpname = filename if filename else tmpfile.name
-        if prompt:
-            tmpfile.write(prompt)
-        tmpfile.close()
-        try:
-            editor = os.environ['editor']
-        except KeyError:
-            editor = 'vi'
-        sub.run([editor, tmpname])
-        with open(tmpfile.name) as inpfile:
-            content = ''.join(inpfile.readlines())
-        if not filename:
-            os.remove(tmpfile.name)
-    else:
-        if prompt:
-            print(prompt)
-        content = ''.join(sys.stdin.readlines())
-    return content
+from padmin.utils import multiline_input
 
 
 class Project(object):
     def __init__(self, dirname='.'):
-        self.location = os.cwd() if dirname == '.' else dirname
+        self.location = os.getcwd() if dirname == '.' else dirname
         self.name = os.path.basename(self.location)
         if not os.path.exists(self.location):
+            print(f'Initializing {self.name} ({self})')
             os.mkdir(self.location)
 
     def git_init(self):
@@ -69,19 +43,22 @@ class Project(object):
 
 
 class PyProject(Project):
-    def __init__(self, dirname, description=''):
+    def __init__(self, dirname='.', description='',
+                 git_init=False, pypi_init=False):
         super().__init__(dirname)
         if not os.path.exists(os.path.join(self.location, self.name)):
-            self.setup(description)
+            print(f'preparing python files for <{self.name}>')
+            self.setup_init(description, git_init=git_init,
+                            pypi_init=pypi_init)
 
-    def setup_init(self, description=''):
+    def setup_init(self, description='', git_init=False, pypi_init=False):
         os.mkdir(os.path.join(self.location, self.name))
         self.description = description or input('Description: ')
 
         # README.md
         multiline_input(
             '# '+self.name, editor=True,
-            filename=os.path.join(self.location, self.name, 'README.md')
+            filename=os.path.join(self.location, 'README.md')
         )
 
         # setup.py
@@ -99,23 +76,22 @@ class PyProject(Project):
         # LICENSE
         multiline_input(
             templates.license, editor=True,
-            filename=os.path.join(self.location, self.name, 'LICENSE')
+            filename=os.path.join(self.location, 'LICENSE')
         )
 
         # prepare git
-        self.git_init()
+        if git_init:
+            self.git_init()
 
         # submit to pypi
         # prepare virtualenv
         self.mkvirtualenv()
 
         # install twine and pre-commit in virtualenv
-        sub.run(['bash'], input=f'''.  ~/Envs/{self.name}/bin/activate
+        sub.run(['bash'], input=f'''.  {self.location}/.env/bin/activate
             cd {self.location}
             # twine
             pip install twine
-            python3 setup.py sdist bdist_wheel
-            python3 -m twine upload dist/*
             # pre-commit
             pip install pre-commit
             pre-commit install
@@ -126,6 +102,16 @@ class PyProject(Project):
                 os.path.join(self.location, '.pre-commit-config.yaml'), 'wt'
         ) as f:
             f.write(templates.precommit)
+
+        if pypi_init:
+            self.twine()
+
+    def push2pypi(self):
+        sub.run(['bash'], input=f'''.  {self.location}/.env/bin/activate
+            cd {self.location}
+            python3 setup.py sdist bdist_wheel
+            python3 -m twine upload dist/*
+        '''.encode())
 
     def setupfile_init(self):
         print('Provide information for "setup.py"')
@@ -174,7 +160,8 @@ class PyProject(Project):
         file.copy(os.path.join(self.location, 'setup.py'))
 
     def mkvirtualenv(self):
-        sub.run(['mkvirtualenv',  self.name, '-a', self.location])
+        # installing virtualenv in hidden .env folder under root folder
+        sub.run(['virtualenv',  os.path.join(self.location, '.env')])
 
 
 class SkeletonFile(object):

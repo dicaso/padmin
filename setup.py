@@ -22,7 +22,10 @@ setup(name='padmin',
           "Development Status :: 1 - Planning"
       ],
       install_requires=[
-      
+          'virtualenv',
+          'argcomplete',
+          'argetype',
+          'kindi'
       ],
       extras_require={
           'documentation': ['Sphinx']
@@ -30,7 +33,14 @@ setup(name='padmin',
       package_data={},
       include_package_data=True,
       zip_safe=False,
-      entry_points={},
+      entry_points={
+          'console_scripts': [
+              'pad=padmin.__main__:main',
+              'pad-commit=padmin.__main__:pad_commit',
+              'workon=padmin.__main__:workon',
+              'mkpyproject=padmin.__main__:pyproject'
+          ],
+      },
       test_suite='nose.collector',
       tests_require=['nose']
       )
