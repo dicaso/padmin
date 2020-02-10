@@ -37,7 +37,7 @@ setup(name='padmin',
           'console_scripts': [
               'pad=padmin.__main__:main',
               'pad-commit=padmin.__main__:pad_commit',
-              'workon=padmin.__main__:workon',
+              'porkon=padmin.__main__:workon',
               'mkpyproject=padmin.__main__:pyproject'
           ],
       },

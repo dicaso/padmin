@@ -44,12 +44,14 @@ class Project(object):
 
 class PyProject(Project):
     def __init__(self, dirname='.', description='',
-                 git_init=False, pypi_init=False):
+                 git_init=False, pypi_init=False, web=False):
         super().__init__(dirname)
         if not os.path.exists(os.path.join(self.location, self.name)):
             print(f'preparing python files for <{self.name}>')
             self.setup_init(description, git_init=git_init,
                             pypi_init=pypi_init)
+            if web:
+                self.web_init()
 
     def setup_init(self, description='', git_init=False, pypi_init=False):
         os.mkdir(os.path.join(self.location, self.name))
@@ -158,6 +160,18 @@ class PyProject(Project):
             '''
         )
         file.copy(os.path.join(self.location, 'setup.py'))
+
+    def web_init(self):
+        for d in ('templates', 'static', 'static/js'):
+            os.mkdir(os.path.join(self.location, self.name, d))
+        SkeletonFile(
+            templates.index_html, {'title': self.name}, reident=False
+        ).copy(os.path.join(self.location, self.name, 'templates/index.html'))
+        SkeletonFile(
+            templates.main_js, reident=False
+        ).copy(os.path.join(self.location, self.name, 'static/js/main.js'))
+        # TODO add flask to setup.py requirements
+        # TODO add flask code to have webserver command
 
     def mkvirtualenv(self):
         # installing virtualenv in hidden .env folder under root folder

@@ -9,10 +9,25 @@ from argetype import ConfigBase
 
 def main():
     class Settings(ConfigBase):
-        action: str
-        projecttype: str = 'python'
-    settings = Settings(parse_args=True)
-    print(settings)
+        action: str                 # Options: create, workon, commit
+        name: str = '.'             # Project name TODO optional last argument
+        projecttype: str = 'python'  # Options: python, pywebapp
+        private: bool = False       # Do not submit to git or pypi
+    settings = Settings(parse=True)
+
+    if settings.action == 'create':
+        from padmin import PyProject
+        if settings.projecttype in ('python', 'pywebapp'):
+            PyProject(
+                dirname=settings.name,
+                git_init=not(settings.private),
+                pypi_init=not(settings.private),
+                web=settings.projecttype == 'pywebapp'
+            )
+        else:
+            print('Unknown project type', settings.projecttype)
+    else:
+        print(settings, 'not implemented yet')
 
 
 def pad_commit():
