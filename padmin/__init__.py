@@ -85,25 +85,26 @@ class PyProject(Project):
         if git_init:
             self.git_init()
 
-        # submit to pypi
-        # prepare virtualenv
-        self.mkvirtualenv()
+            # submit to pypi
+            # prepare virtualenv
+            self.mkvirtualenv()
 
-        # install twine and pre-commit in virtualenv
-        sub.run(['bash'], input=f'''.  {self.location}/.env/bin/activate
-            cd {self.location}
-            # twine
-            pip install twine
-            # pre-commit
-            pip install pre-commit
-            pre-commit install
-        '''.encode())
+            # install twine and pre-commit in virtualenv
+            sub.run(['bash'], input=f'''.  {self.location}/.env/bin/activate
+                cd {self.location}
+                # twine
+                pip install twine
+                # pre-commit
+                pip install pre-commit
+                pre-commit install
+            '''.encode())
 
-        # pre-commit config
-        with open(
-                os.path.join(self.location, '.pre-commit-config.yaml'), 'wt'
-        ) as f:
-            f.write(templates.precommit)
+            # pre-commit config
+            with open(
+                    os.path.join(
+                        self.location, '.pre-commit-config.yaml'), 'wt'
+            ) as f:
+                f.write(templates.precommit)
 
         if pypi_init:
             self.twine()
